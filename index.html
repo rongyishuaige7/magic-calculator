@@ -575,7 +575,7 @@
                 // 步骤3: 点击等号，显示"和+差值"，下方显示差值
                 const time = getCurrentTime();
                 // 差值 = |和 - 当前时间(MMDDHHMM)|
-                const currentTimeValue = parseInt(`${time.month}${time.day}${time.hours}${time.minutes}`);
+                const currentTimeValue = parseInt(`${time.month}${time.day}${time.hours}${String(time.minutes).padStart(2, '0')}`);
                 const diff = Math.abs(state.storedSum - currentTimeValue);
 
                 // 上方表达式显示"和+差值"
@@ -594,7 +594,7 @@
             if (state.magicMode && state.magicStep === 3 && nextOperator === 'equals') {
                 // 步骤4: 点击等号，显示当前时间，表达式清空
                 const time = getCurrentTime();
-                const timeStr = `${time.month}${time.day}${time.hours}${time.minutes}`;
+                const timeStr = `${time.month}${time.day}${time.hours}${String(time.minutes).padStart(2, '0')}`;
 
                 // 下方主显示框显示当前时间
                 state.result = timeStr;
