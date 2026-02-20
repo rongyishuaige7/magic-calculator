@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Magic Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        :root {
+            --bg-black: #000000;
+            --btn-function: #333333;
+            --btn-number: #1c1c1e;
+            --btn-orange: #ff9500;
+            --btn-orange-dark: #e08600;
+            --text-white: #ffffff;
+            --text-dark: #000000;
+        }
+
+        body {
+            background: var(--bg-black);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
+            overflow: hidden;
+        }
+
+        .calculator {
+            width: 100%;
+            max-width: 420px;
+            height: 100vh;
+            max-height: 900px;
+            background: var(--bg-black);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .history-btn {
+            position: absolute;
+            top: 15px;
+            left: 10px;
+            width: 50px;
+            height: 50px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 25px;
+            transition: background 0.2s;
+            z-index: 10;
+        }
+
+        .history-btn:active {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .history-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--text-white);
+        }
+
+        /* 显示屏 */
+        .display {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-end;
+            padding: 30px;
+            min-height: 200px;
+        }
+
+        .expression {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 32px;
+            font-weight: 400;
+            min-height: 40px;
+            word-break: break-all;
+            text-align: right;
+            max-width: 100%;
+        }
+
+        .result {
+            color: var(--text-white);
+            font-size: 72px;
+            font-weight: 300;
+            word-break: break-all;
+            text-align: right;
+            max-width: 100%;
+            line-height: 1.1;
+        }
+
+        /* 按钮网格 */
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            padding: 14px;
+            padding-bottom: 50px;
+        }
+
+        .btn {
+            height: 80px;
+            border: none;
+            border-radius: 40px;
+            font-size: 32px;
+            font-weight: 400;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            transition: transform 0.1s, background 0.2s;
+            position: relative;
+            overflow: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            z-index: 1;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0);
+            transition: background 0.1s;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+            -webkit-transform: scale(0.95);
+        }
+
+        .btn:active::after {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-function {
+            background: var(--btn-function);
+            color: var(--text-black);
+        }
+
+        .btn-number {
+            background: var(--btn-number);
+            color: var(--text-white);
+        }
+
+        .btn-operator {
+            background: var(--btn-orange);
+            color: var(--text-white);
+        }
+
+        .btn-operator:active {
+            background: var(--btn-orange-dark);
+        }
+
+        .btn-zero {
+            grid-column: span 2;
+            text-align: left;
+            padding-left: 32px;
+        }
+
+        /* 历史面板 */
+        .history-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 100;
+        }
+
+        .history-overlay.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .history-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 100%;
+            background: rgba(30, 30, 30, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 101;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .history-panel.active {
+            transform: translateX(0);
+        }
+
+        .history-header {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .history-title {
+            color: var(--text-white);
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .history-close {
+            width: 44px;
+            height: 44px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 22px;
+        }
+
+        .history-close svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--btn-orange);
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .history-item {
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .history-expr {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .history-result {
+            color: var(--text-white);
+            font-size: 22px;
+            font-weight: 500;
+        }
+
+        .history-empty {
+            color: rgba(255, 255, 255, 0.4);
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 15px;
+        }
+
+        .history-clear {
+            padding: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .history-clear-btn {
+            width: 100%;
+            height: 44px;
+            background: rgba(255, 59, 48, 0.2);
+            border: none;
+            border-radius: 22px;
+            color: #ff3b30;
+            font-size: 17px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <button class="history-btn" id="historyBtn">
+            <svg viewBox="0 0 24 24">
+                <path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+            </svg>
+        </button>
+
+        <div class="display">
+            <div class="expression" id="expression"></div>
+            <div class="result" id="result">0</div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn btn-function" onclick="handleAction('clear')">AC</button>
+            <button class="btn btn-function" onclick="handleAction('negate')">+/−</button>
+            <button class="btn btn-function" onclick="handleAction('percent')">%</button>
+            <button class="btn btn-operator" onclick="handleAction('divide')">÷</button>
+
+            <button class="btn btn-number" onclick="handleDigit('7')">7</button>
+            <button class="btn btn-number" onclick="handleDigit('8')">8</button>
+            <button class="btn btn-number" onclick="handleDigit('9')">9</button>
+            <button class="btn btn-operator" onclick="handleAction('multiply')">×</button>
+
+            <button class="btn btn-number" onclick="handleDigit('4')">4</button>
+            <button class="btn btn-number" onclick="handleDigit('5')">5</button>
+            <button class="btn btn-number" onclick="handleDigit('6')">6</button>
+            <button class="btn btn-operator" onclick="handleAction('subtract')">−</button>
+
+            <button class="btn btn-number" onclick="handleDigit('1')">1</button>
+            <button class="btn btn-number" onclick="handleDigit('2')">2</button>
+            <button class="btn btn-number" onclick="handleDigit('3')">3</button>
+            <button class="btn btn-operator" onclick="handleAction('add')">+</button>
+
+            <button class="btn btn-number btn-zero" onclick="handleDigit('0')">0</button>
+            <button class="btn btn-number" onclick="handleAction('decimal')">.</button>
+            <button class="btn btn-operator" onclick="handleAction('equals')">=</button>
+        </div>
+    </div>
+
+    <!-- 历史面板 -->
+    <div class="history-overlay" id="historyOverlay"></div>
+    <div class="history-panel" id="historyPanel">
+        <div class="history-header">
+            <span class="history-title">历史记录</span>
+            <button class="history-close" id="historyClose">
+                <svg viewBox="0 0 24 24">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+            </button>
+        </div>
+        <div class="history-list" id="historyList">
+            <div class="history-empty">暂无计算记录</div>
+        </div>
+        <div class="history-clear">
+            <button class="history-clear-btn" id="historyClear">清除历史</button>
+        </div>
+    </div>
+
+    <script>
+        // 全局函数
+        window.handleDigit = function(digit) {
+            // 锁定状态下不允许输入数字
+            if (state.isLocked) return;
+            inputDigit(digit);
+        };
+
+        window.inputDigit = function(digit) {
+            if (state.waitingForSecondOperand) {
+                state.currentOperand = digit;
+                state.waitingForSecondOperand = false;
+            } else {
+                if (state.currentOperand === '0') {
+                    state.currentOperand = digit;
+                } else {
+                    state.currentOperand += digit;
+                }
+            }
+
+            state.digitsEntered.push(parseInt(state.currentOperand));
+            state.result = state.currentOperand;
+            state.expression = state.expression === '0' ? state.currentOperand : state.expression + digit;
+            updateDisplay();
+
+            if (checkMagicMode() && !state.magicMode) {
+                state.magicMode = true;
+                // magicStep在按=计算后设置
+            }
+        };
+
+        window.handleAction = function(action) {
+            // 魔术模式下锁定：只允许 AC、+、=
+            if (state.isLocked && action !== 'add' && action !== 'equals' && action !== 'clear') {
+                return;
+            }
+
+            switch (action) {
+                case 'clear':
+                    clearAll();
+                    break;
+                case 'negate':
+                    negate();
+                    break;
+                case 'percent':
+                    percent();
+                    break;
+                case 'decimal':
+                    inputDecimal();
+                    break;
+                case 'add':
+                    handleOperator('add');
+                    break;
+                case 'subtract':
+                    handleOperator('subtract');
+                    break;
+                case 'multiply':
+                    handleOperator('multiply');
+                    break;
+                case 'divide':
+                    handleOperator('divide');
+                    break;
+                case 'equals':
+                    calculate();
+                    break;
+            }
+        };
+
+        // 状态管理
+        var state = {
+            expression: '',
+            result: '0',
+            currentOperand: '0',
+            previousOperand: null,
+            operator: null,
+            waitingForSecondOperand: false,
+            magicMode: false,
+            magicStep: 0,
+            storedSum: null,
+            digitsEntered: [],
+            isLocked: false
+        };
+
+        // DOM元素
+        const expressionEl = document.getElementById('expression');
+        const resultEl = document.getElementById('result');
+        const historyBtn = document.getElementById('historyBtn');
+        const historyOverlay = document.getElementById('historyOverlay');
+        const historyPanel = document.getElementById('historyPanel');
+        const historyClose = document.getElementById('historyClose');
+        const historyList = document.getElementById('historyList');
+        const historyClear = document.getElementById('historyClear');
+
+        // 获取当前时间 (月日时分，无前导零)
+        function getCurrentTime() {
+            const now = new Date();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            return { month, day, hours, minutes };
+        }
+
+        // 检查是否进入魔术模式
+        function checkMagicMode() {
+            if (state.digitsEntered.length >= 2) {
+                const lastTwo = state.digitsEntered.slice(-2);
+                const d1 = lastTwo[0].toString().length;
+                const d2 = lastTwo[1].toString().length;
+
+                if (d1 === 4 && d2 === 5) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // 锁定计算器（禁用大部分按钮）
+        function lockCalculator() {
+            state.isLocked = true;
+        }
+
+        // 解锁计算器
+        function unlockCalculator() {
+            state.isLocked = false;
+        }
+
+        // 更新显示
+        function updateDisplay() {
+            expressionEl.textContent = state.expression;
+            resultEl.textContent = state.result;
+        }
+
+        // 输入数字
+        function inputDigit(digit) {
+            if (state.waitingForSecondOperand) {
+                state.currentOperand = digit;
+                state.waitingForSecondOperand = false;
+            } else {
+                if (state.currentOperand === '0') {
+                    state.currentOperand = digit;
+                } else {
+                    state.currentOperand += digit;
+                }
+            }
+
+            // 记录输入的数字
+            state.digitsEntered.push(parseInt(state.currentOperand));
+
+            state.result = state.currentOperand;
+            state.expression = state.expression === '0' ? state.currentOperand : state.expression + digit;
+            updateDisplay();
+
+            // 检查是否进入魔术模式
+            if (checkMagicMode() && !state.magicMode) {
+                state.magicMode = true;
+                // magicStep在按=计算后设置
+            }
+        }
+
+        // 输入小数点
+        function inputDecimal() {
+            if (state.waitingForSecondOperand) {
+                state.currentOperand = '0.';
+                state.waitingForSecondOperand = false;
+                state.result = state.currentOperand;
+                updateDisplay();
+                return;
+            }
+
+            if (!state.currentOperand.includes('.')) {
+                state.currentOperand += '.';
+                state.result = state.currentOperand;
+                updateDisplay();
+            }
+        }
+
+        // 处理运算符
+        function handleOperator(nextOperator) {
+            const inputValue = parseFloat(state.currentOperand);
+
+            // 魔术模式逻辑
+            if (state.magicMode && state.magicStep === 1 && nextOperator === 'add') {
+                // 步骤2: 点击加号，上方显示"和+"，下方保持显示和
+                const sum = state.storedSum;
+                state.expression = sum + ' +';
+                // 下方主显示框保持显示和
+                state.result = sum.toString();
+                state.magicStep = 2;
+                updateDisplay();
+
+                // 锁定计算器
+                lockCalculator();
+                return;
+            }
+
+            if (state.magicMode && state.magicStep === 3 && nextOperator === 'add') {
+                // 步骤3后不允许其他操作，继续按等号处理
+                return;
+            }
+
+            if (state.magicMode && state.magicStep === 2 && nextOperator === 'equals') {
+                // 步骤3: 点击等号，显示"和+差值"，下方显示差值
+                const time = getCurrentTime();
+                // 差值 = |和 - 当前时间(MMDDHHMM)|
+                const currentTimeValue = parseInt(`${time.month}${time.day}${time.hours}${time.minutes}`);
+                const diff = Math.abs(state.storedSum - currentTimeValue);
+
+                // 上方表达式显示"和+差值"
+                state.expression = `${state.storedSum} + ${diff}`;
+                // 下方主显示框只显示差值
+                state.result = diff.toString();
+                state.magicStep = 3;
+
+                // 保存到历史
+                addToHistory(state.expression, diff.toString());
+
+                updateDisplay();
+                return;
+            }
+
+            if (state.magicMode && state.magicStep === 3 && nextOperator === 'equals') {
+                // 步骤4: 点击等号，显示当前时间，表达式清空
+                const time = getCurrentTime();
+                const timeStr = `${time.month}${time.day}${time.hours}${time.minutes}`;
+
+                // 下方主显示框显示当前时间
+                state.result = timeStr;
+                // 表达式清空
+                state.expression = '';
+                state.magicStep = 4;
+                updateDisplay();
+                return;
+            }
+
+            // 魔术模式第一步：按等号计算和
+            if (state.magicMode && state.magicStep === 1 && nextOperator === 'equals') {
+                // 已经计算过了，直接返回
+                return;
+            }
+
+            // 普通计算模式
+            if (state.previousOperand === null) {
+                state.previousOperand = inputValue;
+            } else if (state.operator) {
+                const currentValue = state.previousOperand || 0;
+                let newValue;
+
+                switch (state.operator) {
+                    case 'add':
+                        newValue = currentValue + inputValue;
+                        break;
+                    case 'subtract':
+                        newValue = currentValue - inputValue;
+                        break;
+                    case 'multiply':
+                        newValue = currentValue * inputValue;
+                        break;
+                    case 'divide':
+                        newValue = inputValue !== 0 ? currentValue / inputValue : 'Error';
+                        break;
+                    default:
+                        newValue = inputValue;
+                }
+
+                state.currentOperand = String(newValue);
+                state.result = state.currentOperand;
+                state.previousOperand = newValue;
+
+                // 保存到历史
+                const expr = `${state.previousOperand} ${getOperatorSymbol(state.operator)} ${inputValue} =`;
+                addToHistory(expr, state.result);
+            }
+
+            if (nextOperator !== 'equals') {
+                state.operator = nextOperator;
+                state.waitingForSecondOperand = true;
+                state.expression = `${state.result} ${getOperatorSymbol(nextOperator)}`;
+            }
+
+            updateDisplay();
+        }
+
+        function getOperatorSymbol(op) {
+            switch (op) {
+                case 'add': return '+';
+                case 'subtract': return '−';
+                case 'multiply': return '×';
+                case 'divide': return '÷';
+                default: return '';
+            }
+        }
+
+        // 计算结果
+        function calculate() {
+            // 魔术模式：按=显示和
+            if (state.magicMode && state.magicStep === 0) {
+                const inputValue = parseFloat(state.currentOperand);
+                if (state.previousOperand !== null && state.operator === 'add') {
+                    const sum = state.previousOperand + inputValue;
+                    state.result = sum.toString();
+                    state.storedSum = sum;
+                    state.magicStep = 1;  // 设置magicStep=1，表示已计算和
+                    state.expression = `${state.previousOperand} + ${inputValue} = ${sum}`;
+
+                    // 保存到历史
+                    addToHistory(`${state.previousOperand} + ${inputValue}`, sum.toString());
+
+                    updateDisplay();
+                }
+                return;
+            }
+
+            handleOperator('equals');
+        }
+
+        // 清除
+        function clearAll() {
+            // 重置魔术模式
+            state.magicMode = false;
+            state.magicStep = 0;
+            state.storedSum = null;
+            state.digitsEntered = [];
+            state.isLocked = false;
+            unlockCalculator();
+
+            state.expression = '';
+            state.result = '0';
+            state.currentOperand = '0';
+            state.previousOperand = null;
+            state.operator = null;
+            state.waitingForSecondOperand = false;
+
+            updateDisplay();
+        }
+
+        // 取反
+        function negate() {
+            state.currentOperand = String(parseFloat(state.currentOperand) * -1);
+            state.result = state.currentOperand;
+            updateDisplay();
+        }
+
+        // 百分比
+        function percent() {
+            state.currentOperand = String(parseFloat(state.currentOperand) / 100);
+            state.result = state.currentOperand;
+            updateDisplay();
+        }
+
+        // 历史记录
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('calcHistory') || '[]');
+            return history;
+        }
+
+        function saveHistory(history) {
+            localStorage.setItem('calcHistory', JSON.stringify(history.slice(0, 50)));
+        }
+
+        function addToHistory(expr, result) {
+            const history = loadHistory();
+            history.unshift({
+                expression: expr,
+                result: result,
+                timestamp: Date.now()
+            });
+            saveHistory(history);
+        }
+
+        function renderHistory() {
+            const history = loadHistory();
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="history-empty">暂无计算记录</div>';
+                return;
+            }
+
+            historyList.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <div class="history-expr">${item.expression}</div>
+                    <div class="history-result">${item.result}</div>
+                </div>
+            `).join('');
+        }
+
+        function clearHistory() {
+            localStorage.removeItem('calcHistory');
+            renderHistory();
+        }
+
+        // 历史面板
+        historyBtn.addEventListener('click', () => {
+            renderHistory();
+            historyOverlay.classList.add('active');
+            historyPanel.classList.add('active');
+        });
+
+        function closeHistory() {
+            historyOverlay.classList.remove('active');
+            historyPanel.classList.remove('active');
+        }
+
+        historyOverlay.addEventListener('click', closeHistory);
+        historyClose.addEventListener('click', closeHistory);
+        historyClear.addEventListener('click', clearHistory);
+
+        // 初始化
+        updateDisplay();
+    </script>
+</body>
+</html>
